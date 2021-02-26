@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/hcl"
+	"github.com/hashicorp/hcl/hclparse"
 	"github.com/mitchellh/colorstring"
 )
 
@@ -28,15 +29,23 @@ func main() {
 			file, err := ioutil.ReadFile(filename)
 			if err != nil {
 				colorstring.Printf("[red]Error reading file: %s\n", err)
+				colorstring.Printf("[red]File Content: %s", file)
 				break
 			}
-			_, err = hcl.Parse(string(file))
-			if err != nil {
-				colorstring.Printf("[red]Error parsing file: %s\n", err)
+			parser := hclparse.NewParser()
+			_, diags := parser.ParseHCLFile(filename)
+			wr := hcl.NewDiagnosticTextWriter(
+				os.Stdout,      // writer to send messages to
+				parser.Files(), // the parser's file cache, for source snippets
+				78,             // wrapping width
+				true,           // generate colored/highlighted output
+			)
+			if diags.HasErrors() {
+				fmt.Printf("\n")
+				wr.WriteDiagnostics(diags)
 				break
 			}
 			colorstring.Printf("[green]OK!\n")
 		}
 	}
-
 }
